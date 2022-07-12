@@ -1,5 +1,7 @@
 import 'package:chatapp/config/palette.dart';
+import 'package:chatapp/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({Key? key}) : super(key: key);
@@ -9,6 +11,8 @@ class LoginSignupScreen extends StatefulWidget {
 }
 
 class _LoginSignupScreenState extends State<LoginSignupScreen> {
+  final _authentication = FirebaseAuth.instance;
+  
   bool isSignupScreen = true;
   final _formKey = GlobalKey<FormState>();
 
@@ -207,7 +211,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                 },
                                 onSaved: (value){
                                   userName = value!;
-                                },
+                                }, // validation 위한 메소드
+                                onChanged: (value){
+                                  userName = value;
+                                }, // 파이어베이스에 저장하기 위한 메소드
                               ),
                               const SizedBox(
                                 height: 8,
@@ -236,15 +243,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                     ),
                                     contentPadding: EdgeInsets.all(10)
                                 ),
+                                keyboardType: TextInputType.emailAddress,
                                 key: ValueKey(2),
                                 validator: (value){
-                                  if (value!.isEmpty || value.contains('@')) {
+                                  if (value!.isEmpty || !value.contains('@')) {
                                     return '유효한 이메일 주소를 입력해주세요.';
                                   }
                                   return null;
                                 },
                                 onSaved: (value){
                                   userEmail = value!;
+                                },
+                                onChanged: (value){
+                                  userEmail = value;
                                 },
                               ),
                               const SizedBox(
@@ -274,6 +285,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                     ),
                                     contentPadding: EdgeInsets.all(10)
                                 ),
+                                obscureText: true,
                                 key: ValueKey(3),
                                 validator: (value){
                                   if (value!.isEmpty || value.length < 6) {
@@ -283,6 +295,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                 },
                                 onSaved: (value){
                                   userPassword = value!;
+                                },
+                                onChanged: (value){
+                                  userPassword = value;
                                 },
                               ),
                             ],
@@ -358,6 +373,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                     ),
                                     contentPadding: EdgeInsets.all(10)
                                 ),
+                                obscureText: true,
                                 key: ValueKey(5),
                                 validator: (value){
                                   if (value!.isEmpty || value.length < 6) {
@@ -395,8 +411,34 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       borderRadius: BorderRadius.circular(50)
                     ),
                     child: GestureDetector(
-                      onTap: (){
-                        _tryValidation();
+                      onTap: () async{
+                        if (isSignupScreen) {
+                          _tryValidation();
+                          try {
+                            final newUser = await _authentication
+                                .createUserWithEmailAndPassword(
+                                email: userEmail, password: userPassword);
+
+                            if(newUser.user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context){
+                                  return ChatScreen();
+                                }),
+                              );
+                            }
+                          } catch(e) {
+                            print(e);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('이메일과 비밀번호를 확인해주세요.'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+
+                        
                       },
                       child: Container(
                         decoration: BoxDecoration(
